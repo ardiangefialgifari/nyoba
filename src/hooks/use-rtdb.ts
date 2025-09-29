@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ref, onValue, push, update, remove, off, DatabaseReference } from 'firebase/database';
+import { ref, onValue, push, update, remove, off } from 'firebase/database';
 import { db } from '@/lib/firebase/config';
 import { useToast } from '@/hooks/use-toast';
 
@@ -11,13 +11,12 @@ export function useRtdb<T>(resource: string) {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   
-  const resourceRef = db ? ref(db, resource) : null;
-
   useEffect(() => {
-    if (!resourceRef) {
+    if (!db) {
       setLoading(false);
       return;
     }
+    const resourceRef = ref(db, resource);
 
     const listener = onValue(
       resourceRef,
@@ -48,10 +47,11 @@ export function useRtdb<T>(resource: string) {
     return () => {
       off(resourceRef, 'value', listener);
     };
-  }, [resource, toast, resourceRef]);
+  }, [resource]);
 
   const createItem = async (item: Omit<T, 'id'>) => {
-    if (!resourceRef) return;
+    if (!db) return;
+    const resourceRef = ref(db, resource);
     try {
       await push(resourceRef, item);
       toast({ title: 'Success', description: `Item in ${resource} created successfully.` });
