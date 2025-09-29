@@ -9,7 +9,7 @@ import {
   signOut,
   type User as FirebaseUser
 } from 'firebase/auth';
-import { ref, push, onValue, off } from 'firebase/database';
+import { ref, onValue, off, query, orderByChild, equalTo, get } from 'firebase/database';
 import { auth, db } from '@/lib/firebase/config';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -33,34 +33,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        const usersRef = ref(db, 'users');
-        const listener = onValue(usersRef, (snapshot) => {
-          const users = snapshot.val();
-          if (users) {
-            const userEntry = Object.values(users as Record<string, any>).find(
-              (u: any) => u.authUid === firebaseUser.uid
-            );
-            if (userEntry) {
-              const appUser: AppUser = { ...firebaseUser, data: userEntry as UserData };
-              setUser(appUser);
-            } else {
-              setUser(firebaseUser); // User exists in Auth, but not in DB
-            }
-          } else {
-             setUser(firebaseUser); // No users in DB
-          }
-          setLoading(false);
-          off(usersRef, 'value', listener); // Detach listener after finding user
-        }, () => {
-          setUser(firebaseUser); // Error fetching from DB
-          setLoading(false);
-        });
+        // User is authenticated with Firebase Auth, now get user data from RTDB
+        const usersRef = query(ref(db, 'users'), orderByChild('authUid'), equalTo(firebaseUser.uid));
+        const snapshot = await get(usersRef);
+
+        if (snapshot.exists()) {
+          const userData = Object.values(snapshot.val())[0] as UserData;
+          const userKey = Object.keys(snapshot.val())[0];
+          const appUser: AppUser = {
+            ...firebaseUser,
+            data: { ...userData, id: userKey },
+          };
+          setUser(appUser);
+        } else {
+          // This case can happen if user exists in Auth but not in RTDB.
+          setUser(firebaseUser);
+        }
       } else {
         setUser(null);
-        setLoading(false);
       }
+      setLoading(false);
     });
 
     return () => unsubscribe();
@@ -74,7 +68,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       router.push('/dashboard');
     } catch (error: any) {
       toast({ title: 'Login Failed', description: error.message, variant: 'destructive' });
-    } finally {
       setLoading(false);
     }
   };
@@ -84,7 +77,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       
-      await push(ref(db, 'users'), {
+      const usersRef = ref(db, 'users');
+      const newUserRef = push(usersRef);
+      await update(newUserRef, {
           email: email,
           name: name || email.split('@')[0],
           role: 'user', // All new users are 'user' by default
@@ -95,7 +90,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       router.push('/dashboard');
     } catch (error: any) {
       toast({ title: 'Registration Failed', description: error.message, variant: 'destructive' });
-    } finally {
       setLoading(false);
     }
   };
@@ -105,7 +99,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await signOut(auth);
       toast({ title: 'Logged Out', description: 'See you next time.' });
       router.push('/login');
-    } catch (error: any) {
+    } catch (error: any)
+      {
       toast({ title: 'Logout Error', description: error.message, variant: 'destructive' });
     }
   };
