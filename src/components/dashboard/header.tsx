@@ -4,7 +4,7 @@
 import { useAuth } from '@/lib/auth-provider';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from '@/components/ui/sheet';
 import { Home, Users, Package, Settings, LogOut, PanelLeft, Code } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -33,14 +33,18 @@ export default function Header() {
               <span className="sr-only">Toggle Menu</span>
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-72 bg-sidebar text-sidebar-foreground p-4 flex flex-col">
-            <div className="flex items-center gap-2 mb-10">
+          <SheetContent side="left" className="w-72 bg-sidebar text-sidebar-foreground p-0 flex flex-col">
+             <SheetHeader className="p-4">
+                <SheetTitle className="sr-only">Mobile Navigation Menu</SheetTitle>
+                <SheetDescription className="sr-only">A menu to navigate through the dashboard pages.</SheetDescription>
+            </SheetHeader>
+            <div className="flex items-center gap-2 mb-6 px-4">
                 <div className="bg-accent p-2 rounded-lg">
                 <Code className="h-6 w-6 text-accent-foreground" />
                 </div>
                 <h1 className="text-2xl font-bold font-headline text-sidebar-foreground">AdminUI</h1>
             </div>
-            <nav className="flex-grow">
+            <nav className="flex-grow px-4">
               <ul className="space-y-2">
                 {navItems.map((item) => {
                   if (item.adminOnly && !isAdmin) return null;
@@ -62,7 +66,7 @@ export default function Header() {
                 })}
               </ul>
             </nav>
-            <div className="pt-4 border-t border-sidebar-border">
+            <div className="p-4 mt-auto border-t border-sidebar-border">
               <Button onClick={logout} variant="ghost" className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
                 <LogOut className="mr-3 h-5 w-5" />
                 Logout
