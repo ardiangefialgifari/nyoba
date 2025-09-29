@@ -1,13 +1,9 @@
 {
   "rules": {
+    ".read": "auth != null",
+    ".write": "auth != null",
     "users": {
-      ".read": "auth != null",
-      ".write": "auth != null",
       ".indexOn": "authUid"
-    },
-    "products": {
-      ".read": "auth != null",
-      ".write": "auth != null"
     }
   }
 }
